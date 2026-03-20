@@ -1,0 +1,91 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+export default function App() {
+  const [lawnSize, setLawnSize] = useState(10000);
+  const [costPerBag, setCostPerBag] = useState(20);
+  const [coverage, setCoverage] = useState(5000);
+  const [hourlyRate, setHourlyRate] = useState(125);
+  const [hours, setHours] = useState(1);
+  const [overhead, setOverhead] = useState(10);
+  const [margin, setMargin] = useState(0.45);
+  const [distance, setDistance] = useState(0);
+
+  const tiers = [
+    { size: 0, price: 15 },
+    { size: 5000, price: 12 },
+    { size: 10000, price: 10 },
+    { size: 20000, price: 8 },
+  ];
+
+  const getTierPrice = () => {
+    let price = tiers[0].price;
+    tiers.forEach(t => {
+      if (lawnSize >= t.size) price = t.price;
+    });
+    return price;
+  };
+
+  const bags = lawnSize / coverage;
+  const productCost = bags * costPerBag;
+  const laborCost = hourlyRate * hours;
+  const totalCost = productCost + laborCost + overhead;
+
+  const tierPrice = getTierPrice();
+  const basePrice = (lawnSize / 1000) * tierPrice;
+
+  // Route density discount (closer jobs = cheaper)
+  const routeDiscount = distance < 5 ? 0.9 : distance < 10 ? 0.95 : 1;
+
+  const finalPrice = (basePrice / (1 - margin)) * routeDiscount;
+
+  // Upsells
+  const [weed, setWeed] = useState(false);
+  const [aeration, setAeration] = useState(false);
+  const [overseed, setOverseed] = useState(false);
+
+  const upsellTotal =
+    (weed ? 25 : 0) +
+    (aeration ? lawnSize * 0.015 : 0) +
+    (overseed ? lawnSize * 0.02 : 0);
+
+  const finalWithUpsells = finalPrice + upsellTotal;
+
+  return (
+    <div className="p-4 grid gap-4">
+      <Card className="rounded-2xl shadow">
+        <CardContent className="p-4 grid gap-2">
+          <h2 className="text-xl font-bold">Tap-to-Quote</h2>
+
+          <input type="number" value={lawnSize} onChange={e => setLawnSize(+e.target.value)} placeholder="Lawn Size" />
+          <input type="number" value={costPerBag} onChange={e => setCostPerBag(+e.target.value)} placeholder="Cost per Bag" />
+          <input type="number" value={coverage} onChange={e => setCoverage(+e.target.value)} placeholder="Coverage" />
+          <input type="number" value={hourlyRate} onChange={e => setHourlyRate(+e.target.value)} placeholder="Hourly Rate" />
+          <input type="number" value={hours} onChange={e => setHours(+e.target.value)} placeholder="Hours" />
+          <input type="number" value={overhead} onChange={e => setOverhead(+e.target.value)} placeholder="Overhead" />
+          <input type="number" step="0.01" value={margin} onChange={e => setMargin(+e.target.value)} placeholder="Margin" />
+          <input type="number" value={distance} onChange={e => setDistance(+e.target.value)} placeholder="Miles Away" />
+
+          <div className="grid gap-1">
+            <label><input type="checkbox" checked={weed} onChange={() => setWeed(!weed)} /> Weed Control (+$25)</label>
+            <label><input type="checkbox" checked={aeration} onChange={() => setAeration(!aeration)} /> Aeration</label>
+            <label><input type="checkbox" checked={overseed} onChange={() => setOverseed(!overseed)} /> Overseeding</label>
+          </div>
+
+          <div className="mt-3 text-lg font-semibold">
+            Quote: ${finalWithUpsells.toFixed(2)}
+          </div>
+
+          <div className="text-sm text-gray-500">
+            Cost: ${totalCost.toFixed(2)} | Tier $/1k: {tierPrice}
+          </div>
+
+          <Button onClick={() => navigator.clipboard.writeText(`Quote: $${finalWithUpsells.toFixed(2)}`)}>
+            Copy Quote
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
